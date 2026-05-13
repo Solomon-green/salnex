@@ -32,4 +32,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           APP_URL: ${{ secrets.APP_URL }}
+          UPWORK_EMAIL: ${{ secrets.UPWORK_EMAIL }}
+          UPWORK_PASSWORD: ${{ secrets.UPWORK_PASSWORD }}
         run: node scripts/scrape-runner.mjs

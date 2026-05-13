@@ -56,6 +56,48 @@ function parseBudget(text = "") {
   return { job_type: "HOURLY" };
 }
 
+// ── login ─────────────────────────────────────────────────────────────────────
+
+async function loginToUpwork(page) {
+  const email = process.env.UPWORK_EMAIL;
+  const password = process.env.UPWORK_PASSWORD;
+
+  if (!email || !password) {
+    console.log("No Upwork credentials provided — searching without login (may be blocked by Cloudflare)");
+    return false;
+  }
+
+  console.log("Logging into Upwork...");
+  await page.goto("https://www.upwork.com/login", { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.waitForTimeout(2000);
+
+  // Fill username
+  const usernameInput = await page.waitForSelector('#login_username', { timeout: 10000 }).catch(() => null);
+  if (!usernameInput) {
+    console.log("Login form not found");
+    return false;
+  }
+
+  await usernameInput.fill(email);
+  await page.click('#login_password_continue');
+  await page.waitForTimeout(2000);
+
+  // Fill password
+  const passwordInput = await page.waitForSelector('#login_password', { timeout: 8000 }).catch(() => null);
+  if (!passwordInput) {
+    console.log("Password field not found");
+    return false;
+  }
+
+  await passwordInput.fill(password);
+  await page.click('#login_control_continue');
+  await page.waitForTimeout(4000);
+
+  const loggedIn = page.url().includes("upwork.com") && !page.url().includes("login");
+  console.log(loggedIn ? "Login successful" : "Login may have failed — URL: " + page.url());
+  return loggedIn;
+}
+
 // ── scraper ──────────────────────────────────────────────────────────────────
 
 async function scrapeQuery(page, query) {
@@ -132,6 +174,9 @@ const context = await browser.newContext({
   viewport: { width: 1280, height: 800 },
 });
 const page = await context.newPage();
+
+// Login to bypass Cloudflare
+await loginToUpwork(page);
 
 const allJobs = new Map();
 
