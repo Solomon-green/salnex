@@ -5,6 +5,18 @@
  */
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+
+// Polyfill WebSocket for Node.js < 22
+if (typeof globalThis.WebSocket === "undefined") {
+  const require = createRequire(import.meta.url);
+  try {
+    const ws = require("ws");
+    globalThis.WebSocket = ws.WebSocket ?? ws;
+  } catch {
+    // ws not available, Supabase will use HTTP fallback
+  }
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,7 +24,9 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = process.env.APP_URL || "https://salnex.vercel.app";
 const CRON_SECRET = process.env.CRON_SECRET;
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
