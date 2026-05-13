@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String          @id @default(uuid())
+  email             String          @unique
+  full_name         String?
+  avatar_url        String?
+  telegram_chat_id  String?
+  telegram_username String?
+  skills            String[]
+  experience_level  ExperienceLevel @default(INTERMEDIATE)
+  upwork_profile_url String?
+  notify_telegram   Boolean         @default(false)
+  notify_email      Boolean         @default(true)
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+
+  filters       JobFilter[]
+  job_matches   JobMatch[]
+  notifications Notification[]
+  proposals     Proposal[]
+
+  @@map("users")
+}
+
+model JobFilter {
+  id                String          @id @default(uuid())
+  user_id           String
+  name              String
+  is_active         Boolean         @default(true)
+  skills            String[]
+  categories        String[]
+  job_types         JobType[]
+  experience_levels ExperienceLevel[]
+  min_budget        Float?
+  max_budget        Float?
+  min_hourly_rate   Float?
+  max_hourly_rate   Float?
+  keywords          String[]
+  excluded_keywords String[]
+  client_rating_min Float?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+
+  user        User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job_matches JobMatch[]
+
+  @@map("job_filters")
+}
+
+model Job {
+  id                 String          @id
+  title              String
+  description        String          @db.Text
+  budget             Float?
+  hourly_rate_min    Float?
+  hourly_rate_max    Float?
+  job_type           JobType         @default(HOURLY)
+  experience_level   ExperienceLevel @default(INTERMEDIATE)
+  category           String?
+  subcategory        String?
+  skills_required    String[]
+  client_name        String?
+  client_country     String?
+  client_rating      Float?
+  client_jobs_posted Int?
+  client_hire_rate   Float?
+  upwork_url         String
+  posted_at          DateTime
+  scraped_at         DateTime        @default(now())
+
+  job_matches JobMatch[]
+  proposals   Proposal[]
+
+  @@map("jobs")
+}
+
+model JobMatch {
+  id              String   @id @default(uuid())
+  user_id         String
+  job_id          String
+  filter_id       String
+  relevance_score Float    @default(0)
+  is_seen         Boolean  @default(false)
+  is_saved        Boolean  @default(false)
+  is_applied      Boolean  @default(false)
+  is_dismissed    Boolean  @default(false)
+  created_at      DateTime @default(now())
+
+  user   User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job    Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  filter JobFilter @relation(fields: [filter_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, job_id])
+  @@map("job_matches")
+}
+
+model Notification {
+  id         String             @id @default(uuid())
+  user_id    String
+  job_id     String?
+  type       NotificationType
+  title      String
+  message    String
+  is_read    Boolean            @default(false)
+  sent_at    DateTime?
+  status     NotificationStatus @default(PENDING)
+  created_at DateTime           @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Proposal {
+  id           String   @id @default(uuid())
+  user_id      String
+  job_id       String
+  content      String   @db.Text
+  ai_generated Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@map("proposals")
+}
+
+enum JobType {
+  HOURLY
+  FIXED_PRICE
+}
+
+enum ExperienceLevel {
+  ENTRY
+  INTERMEDIATE
+  EXPERT
+}
+
+enum NotificationType {
+  NEW_JOB
+  SYSTEM
+  ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
